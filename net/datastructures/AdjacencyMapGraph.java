@@ -233,6 +233,7 @@ public class AdjacencyMapGraph<V,E> implements Graph<V,E> {
 
     /** Returns reference to the underlying map of incoming edges. */
     public Map<Vertex<V>, Edge<E>> getIncoming() { return incoming; }
+
   } //------------ end of InnerVertex class ------------
 
   //---------------- nested InnerEdge class ----------------
