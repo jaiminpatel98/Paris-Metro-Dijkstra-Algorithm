@@ -173,9 +173,11 @@ public class AdjacencyMapGraph<V,E> implements Graph<V,E> {
   public void removeEdge(Edge<E> e) throws IllegalArgumentException {
     InnerEdge<E> edge = validate(e);
     // remove this edge from vertices' adjacencies
-    InnerVertex<V>[] verts = (InnerVertex<V>[]) edge.getEndpoints();
-    verts[0].getOutgoing().remove(verts[1]);
-    verts[1].getIncoming().remove(verts[0]);
+    Vertex<V>[] verts = edge.getEndpoints();
+    InnerVertex<V> vert1 = validate(verts[0]);
+    InnerVertex<V> vert2 = validate(verts[1]);
+    vert1.getOutgoing().remove(verts[1]);
+    vert2.getIncoming().remove(verts[0]);
     // remove this edge from the list of edges
     edges.remove(edge.getPosition());
     edge.setPosition(null);             // invalidates the edge

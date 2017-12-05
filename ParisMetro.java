@@ -67,99 +67,241 @@ public class ParisMetro {
 
 	}
 
-	public static void sameLine(Vertex<Integer> v) {
+	public static LinkedQueue<Vertex<Integer>> sameLine(Vertex<Integer> v) {
 		LinkedStack<Vertex<Integer>> stack = new LinkedStack<Vertex<Integer>>();
+		HashSet visited = new HashSet();
 		Edge[] originalEdges = new Edge[2];
+		LinkedQueue<Vertex<Integer>> onLine = new LinkedQueue<Vertex<Integer>>();
+		onLine.enqueue(v);
+		visited.add(v);
 		Iterable<Edge<Integer>> edgeList = parisMetro.outgoingEdges(v);
-		int index = 0;
-		boolean flag = false;
+		int index = 0; 
+
 		for (Edge<Integer> e : edgeList) {
-			if (e.getElement() != (Integer)90) {
+			if (e.getElement() != 90) {
 				originalEdges[index] = e;
 				index++;
 			}
 		}
-		
-		Vertex<Integer> vTemp = parisMetro.opposite(v, originalEdges[0]);
-		stack.push(vTemp);
-		Object edgeValue = originalEdges[0].getElement();
-		
-		Integer nextValue = 0;
-		
+
+		Vertex<Integer> nextStation = parisMetro.opposite(v, originalEdges[0]);
+		visited.add(nextStation);
+		stack.push(nextStation);
+
 		while (!stack.isEmpty()) {
-			int count = 0;
-			edgeList = parisMetro.outgoingEdges(vTemp);
-			for (Edge<Integer> e : edgeList) {
-				Integer eValue = e.getElement();
-				if (eValue != (Integer)90) {
-					if (eValue != edgeValue) {
-						nextValue = eValue;
-						Integer vv = vTemp.getElement();
-						// System.out.println(vTemp.getElement());
-						vTemp = parisMetro.opposite(vTemp, e);
-						Integer vw = vTemp.getElement();
-						stack.push(vTemp);
-						count = 1;
+			nextStation = stack.pop();
+			Iterable<Edge<Integer>> outgoingEdges = parisMetro.outgoingEdges(nextStation);
+			for (Edge<Integer> e : outgoingEdges) {
+				if (e.getElement() != 90 && !visited.contains(parisMetro.opposite(nextStation, e))) {
+					nextStation = parisMetro.opposite(nextStation, e);
+					visited.add(nextStation);
+					stack.push(nextStation);
+					onLine.enqueue(nextStation);
+					break;
+				}
+			}
+		} 
+
+		if (originalEdges[1] != null) {
+			nextStation = parisMetro.opposite(v, originalEdges[1]);
+			visited.add(nextStation);
+			stack.push(nextStation);
+			while (!stack.isEmpty()) {
+				nextStation = stack.pop();
+				Iterable<Edge<Integer>> outgoingEdges = parisMetro.outgoingEdges(nextStation);
+				for (Edge<Integer> e : outgoingEdges) {
+					if (e.getElement() != 90 && !visited.contains(parisMetro.opposite(nextStation, e))) {
+						nextStation = parisMetro.opposite(nextStation, e);
+						visited.add(nextStation);
+						stack.push(nextStation);
+						onLine.enqueue(nextStation);
+						break;
 					}
-
 				}
 			}
-			
-			edgeValue = nextValue;
-			
-			if (count == 0) {
-				// System.out.println(vTemp.getElement());
-				while (!stack.isEmpty()) {
-					Vertex vPrint = stack.pop();
-					System.out.println(vPrint.getElement());
-				}
-			}
-		}
-
-		if (originalEdges[1] == null) {
-			System.out.println(v.getElement());
+			/*while (!onLine.isEmpty()) {
+				System.out.println(onLine.dequeue());
+			}*/
+			return onLine;
 		} else {
-			vTemp = parisMetro.opposite(v, originalEdges[1]);
-			stack.push(vTemp);
-			edgeValue = originalEdges[1].getElement();
-
-			nextValue = 0;
-			while(!stack.isEmpty()) {
-				int count = 0;
-				edgeList = parisMetro.outgoingEdges(vTemp);
-				for (Edge<Integer> e : edgeList) {
-					Integer eValue = e.getElement();
-					if (eValue != (Integer)90) {
-						if (eValue != edgeValue) {
-							nextValue = eValue;
-							vTemp = parisMetro.opposite(vTemp, e);
-							stack.push(vTemp);
-							count = 1;
-						}
-					}
-				}
-
-				edgeValue = nextValue;
-
-				if (count == 0) {
-					// System.out.println(vTemp.getElement());
-					while (!stack.isEmpty()) {
-						Vertex vPrint = stack.pop();
-						System.out.println(vPrint.getElement());
-					}
-				}
-			}
-			System.out.println(v.getElement());
+			/*while (!onLine.isEmpty()) {
+				System.out.println(onLine.dequeue());
+			}*/
+			return onLine;
 		}
+
 		
 	}
 
+	public static LinkedStack<Integer> shortestTimeToDestination(Vertex<Integer> src, Vertex<Integer> dest) {
+		Map<Vertex<Integer>, Vertex<Integer>> previousVisit = new ProbeHashMap<>();
+		LinkedStack<Integer> shortestPath = new LinkedStack<Integer>();
+		// d.get(v) is upper bound on distance from src to v
+		Map<Vertex<Integer>, Integer> d = new ProbeHashMap<>();
+		// map reachable v to its d value
+		Map<Vertex<Integer>, Integer> cloud = new ProbeHashMap<>();
+		// pq will have vertices as elements, with d.get(v) as key
+		AdaptablePriorityQueue<Integer, Vertex<Integer>> pq;
+		pq = new HeapAdaptablePriorityQueue<>();
+		// maps from vertex to its pq locator
+		Map<Vertex<Integer>, Entry<Integer,Vertex<Integer>>> pqTokens;
+		pqTokens = new ProbeHashMap<>();
+
+		// for each vertex v of the graph, add an entry to the priority queue, with
+		// the source having distance 0 and all others having infinite distance
+		for (Vertex<Integer> v : parisMetro.vertices()) {
+			if (v == src)
+				d.put(v,0);
+			else
+				d.put(v, Integer.MAX_VALUE);
+			pqTokens.put(v, pq.insert(d.get(v), v));       // save entry for future updates
+		}
+		// now begin adding reachable vertices to the cloud 
+		while (!pq.isEmpty()) {
+			Entry<Integer, Vertex<Integer>> entry = pq.removeMin();
+			int key = entry.getKey();
+			Vertex<Integer> u = entry.getValue();
+			cloud.put(u, key);                             // this is actual distance to u
+			pqTokens.remove(u);    			               // u is no longer in pq
+			for (Edge<Integer> e : parisMetro.outgoingEdges(u)) {
+				Vertex<Integer> v = parisMetro.opposite(u,e);
+				if (cloud.get(v) == null) {
+					// perform relaxation step on edge (u,v)
+					int wgt = e.getElement();
+					if (d.get(u) + wgt < d.get(v)) {              // better path to v?
+						previousVisit.put(v, u);
+						d.put(v, d.get(u) + wgt);                   // update the distance
+						if (v == dest) {
+							int time = d.get(u) + wgt;
+							shortestPath.push(v.getElement());
+							while (v != src) {
+								shortestPath.push(previousVisit.get(v).getElement());
+								v = previousVisit.get(v);
+							}
+							shortestPath.push(time);
+							return shortestPath;
+						}
+						pq.replaceKey(pqTokens.get(v), d.get(v));   // update the pq entry
+					}
+				}
+			}
+		}
+
+
+		return shortestPath;         // this only includes reachable vertices
+	}
+
+	public static void closeLine (Vertex<Integer> v) {
+		LinkedQueue<Vertex<Integer>> line = sameLine(v);
+		while(!line.isEmpty()) {
+			Vertex<Integer> vertex = line.dequeue();
+			parisMetro.removeVertex(vertex);
+		}
+	}
+
+	public static void printLine(Vertex<Integer> v) {
+		LinkedQueue<Vertex<Integer>> queue = sameLine(v);
+		while (!queue.isEmpty()) {
+			System.out.print(queue.dequeue().getElement() + " ");
+		}
+		System.out.println();
+	}
+
+	public static void printStack(LinkedStack<Integer> stack) {
+		while (!stack.isEmpty()) {
+			System.out.print(stack.pop() + " ");
+		}
+		System.out.println();
+	}
+
 	public static void main(String[] args) throws Exception, IOException {
+		int argsLength = args.length;
+
 		ParisMetro metro = new ParisMetro("metro.txt");
 		Vertex[] list = metro.getVertexList();
-		sameLine(list[114]);
-		// System.out.println(metro.getGraph());
 		
+		if (argsLength == 1) {
+			int N1 = Integer.parseInt(args[0]);
+
+			System.out.println("Test --------------------");
+
+			System.out.println("	Input: ");
+			System.out.println("	N1 = " + N1);
+			System.out.println("	Output: ");
+			System.out.print("	Path: ");
+			printLine(list[N1]);
+
+			System.out.println("End of Test -------------");
+		} else if (argsLength == 2) {
+			int N1 = Integer.parseInt(args[0]);
+			int N2 = Integer.parseInt(args[1]);
+
+			System.out.println("Test --------------------");
+
+			System.out.println("	Input: ");
+			System.out.println("	N1 = " + N1 + " N2 = " + N2);
+			System.out.println("	Output: ");
+			LinkedStack<Integer> stack = shortestTimeToDestination(list[N1], list[N2]);
+			System.out.println("	Time: " + stack.pop());
+			System.out.print("	Path: ");
+			printStack(stack);
+
+			System.out.println("End of Test -------------");
+		} else if (argsLength == 3) {
+			int N1 = Integer.parseInt(args[0]);
+			int N2 = Integer.parseInt(args[1]);
+			int N3 = Integer.parseInt(args[2]);
+
+			System.out.println("Test --------------------");
+
+			System.out.println("	Input: ");
+			System.out.println("	N1 = " + N1 + " N2 = " + N2);
+			System.out.println("	Output: ");
+			LinkedStack<Integer> stack = shortestTimeToDestination(list[N1], list[N2]);
+			System.out.println("	Time: " + stack.pop());
+			System.out.print("	Path: ");
+			printStack(stack);
+
+			System.out.println("	Input: ");
+			System.out.println("	N1 = " + N1 + " N2 = " + N2 + " N3 = " + N3);
+			System.out.println("	Output: ");
+			closeLine(list[N3]);
+			LinkedStack<Integer> stack2 = shortestTimeToDestination(list[N1], list[N2]);
+			System.out.println("	Time: " + stack2.pop());
+			System.out.print("	Path: ");
+			printStack(stack2);
+
+			System.out.println("End of Test -------------");
+		}
+
+
+
+
+
+
+
+		/*closeLine(list[1]);
+		LinkedStack<Integer> stack = shortestTimeToDestination(list[0], list[42]);
+		int time = stack.pop();
+		while (!stack.isEmpty()) {
+			System.out.println(stack.pop());
+		}
+		System.out.println("Time: " + time);*/
+
+
+
+
+
+		/*ParisMetro metro = new ParisMetro("metro.txt");
+		Vertex[] list = metro.getVertexList();
+		sameLine(list[114]);
+		System.out.println(metro.getGraph());
+		LinkedStack<Integer> stack = shortestTimeToDestination(list[0], list[42]);
+		int time = stack.pop();
+		while (!stack.isEmpty()) {
+			System.out.println(stack.pop());
+		}
+		System.out.println("Time: " + time);*/
 	}
 
 
