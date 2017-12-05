@@ -6,11 +6,6 @@ import java.io.IOException;
 import java.util.Iterator;
 
 import java.util.*;
-import net.datastructures.Graph;
-import net.datastructures.Vertex;
-import net.datastructures.Edge;
-import net.datastructures.AdjacencyMapGraph;
-import net.datastructures.Map;
 import net.datastructures.*;
 
 /**
@@ -119,14 +114,8 @@ public class ParisMetro {
 					}
 				}
 			}
-			/*while (!onLine.isEmpty()) {
-				System.out.println(onLine.dequeue());
-			}*/
 			return onLine;
 		} else {
-			/*while (!onLine.isEmpty()) {
-				System.out.println(onLine.dequeue());
-			}*/
 			return onLine;
 		}
 
@@ -273,37 +262,5 @@ public class ParisMetro {
 
 			System.out.println("End of Test -------------");
 		}
-
-
-
-
-
-
-
-		/*closeLine(list[1]);
-		LinkedStack<Integer> stack = shortestTimeToDestination(list[0], list[42]);
-		int time = stack.pop();
-		while (!stack.isEmpty()) {
-			System.out.println(stack.pop());
-		}
-		System.out.println("Time: " + time);*/
-
-
-
-
-
-		/*ParisMetro metro = new ParisMetro("metro.txt");
-		Vertex[] list = metro.getVertexList();
-		sameLine(list[114]);
-		System.out.println(metro.getGraph());
-		LinkedStack<Integer> stack = shortestTimeToDestination(list[0], list[42]);
-		int time = stack.pop();
-		while (!stack.isEmpty()) {
-			System.out.println(stack.pop());
-		}
-		System.out.println("Time: " + time);*/
-	}
-
-
 
 }
