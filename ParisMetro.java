@@ -16,78 +16,79 @@ import net.datastructures.*;
 
 public class ParisMetro {
 
-	static Vertex[] vertexList = new Vertex[376];
-	static Graph<Integer, Integer> parisMetro;
+	static Vertex[] vertexList = new Vertex[376]; // Will store all Metro Station vertices in order from 000 to 375; 
+	static Graph<Integer, Integer> parisMetro; // Stores the Graph with Stations Numbers as vertices and time between vertices as edge weightings
 
 	public ParisMetro(String fileName) throws Exception, IOException{
 		parisMetro = new AdjacencyMapGraph<Integer, Integer>(true);
-		readMetro(fileName);
+		readMetro(fileName); // Converts fileName from ParisMetro parameter into an Array of Station vertices and a Graph of the Metro system
 	}
 
-	public static Graph<Integer,Integer> getGraph() {return parisMetro;}
+	public static Graph<Integer,Integer> getGraph() {return parisMetro;} // Returns Graph containing Metro system
 
-	public static Vertex[] getVertexList() {return vertexList;}
+	public static Vertex[] getVertexList() {return vertexList;} // Returns array of Station vertices in order from 000 to 375
 
 	public static void readMetro(String fileName) throws Exception, IOException {
-		BufferedReader metroFile = new BufferedReader(new FileReader(fileName));
-		String stationData = metroFile.readLine();
+		BufferedReader metroFile = new BufferedReader(new FileReader(fileName)); // New BufferReader that reads Class fileName parameter
+		String stationData = metroFile.readLine(); // Skips first line that states total number of vertices and edges in the Metro system
 		stationData = metroFile.readLine();
-		int i = 0;
-		while (!stationData.equals("$")) {
-			String[] indivStationData = stationData.split(" ");
+		int i = 0; // Used to iterate through the array of vertices
+		while (!stationData.equals("$")) { // Stops when file is done listing the Station Numbers
+			String[] indivStationData = stationData.split(" "); // Seperates the line into the Station Number and Station Name
 			int stationNum = Integer.parseInt(indivStationData[0]);
-			Vertex newVertex = parisMetro.insertVertex(stationNum);
-			vertexList[i] = newVertex;
-			stationData = metroFile.readLine();
+			Vertex newVertex = parisMetro.insertVertex(stationNum); // Creates vertex out of Station Number on current line
+			vertexList[i] = newVertex; // Adds vertex to the vertexList
+			stationData = metroFile.readLine(); // Goes to next line
 			i++;
 		}
 
-		stationData = metroFile.readLine();
+		stationData = metroFile.readLine(); // Skips line with '$'
 
-		while (stationData != null) {
-			String[] pathData = stationData.split(" ");
+		// Inputs Vertices into a Graph and connects them by their common weighted edge
+		while (stationData != null) { // Stops at the end of the file
+			String[] pathData = stationData.split(" "); // Splits line into source Station, destination Station, and time (weighted edge)
 
-			int sourceStation = Integer.parseInt(pathData[0]);
+			int sourceStation = Integer.parseInt(pathData[0]); 
 			int destStation = Integer.parseInt(pathData[1]);
 			int pathTime = Integer.parseInt(pathData[2]);
 
-			if (pathTime == -1) {
+			if (pathTime == -1) { // If the weighted edge is -1 it indicated it is a walking edge and we give it a walking constant of 90
 				pathTime = 90;
 			}
 
-			parisMetro.insertEdge(vertexList[sourceStation], vertexList[destStation], pathTime);
+			parisMetro.insertEdge(vertexList[sourceStation], vertexList[destStation], pathTime); // Inserts weighted edge connected by two vertices into Graph
 
-			stationData = metroFile.readLine();
+			stationData = metroFile.readLine(); // Goes to the next line in file
 		}
 
 	}
 
-	public static LinkedQueue<Vertex<Integer>> sameLine(Vertex<Integer> v) {
-		LinkedStack<Vertex<Integer>> stack = new LinkedStack<Vertex<Integer>>();
-		HashSet visited = new HashSet();
-		Edge[] originalEdges = new Edge[2];
-		LinkedQueue<Vertex<Integer>> onLine = new LinkedQueue<Vertex<Integer>>();
+	public static LinkedQueue<Vertex<Integer>> sameLine(Vertex<Integer> v) { // Returns a LinkedQueue containing all vertices on the same line as parameter vertex
+		LinkedStack<Vertex<Integer>> stack = new LinkedStack<Vertex<Integer>>(); // Will contain a vertex at a time to traverse along a line
+		HashSet visited = new HashSet(); // Will contain visted vertices as to be sure not to visit them again
+		Edge[] originalEdges = new Edge[2]; // Contains the one or two edges of parameter vertex that are not weighted as 90
+		LinkedQueue<Vertex<Integer>> onLine = new LinkedQueue<Vertex<Integer>>(); // Will contain all vertices on the same line as parameter vertex
 		onLine.enqueue(v);
 		visited.add(v);
-		Iterable<Edge<Integer>> edgeList = parisMetro.outgoingEdges(v);
+		Iterable<Edge<Integer>> edgeList = parisMetro.outgoingEdges(v); // Gets outgoing edges of parameter vertex as a Iterable
 		int index = 0; 
 
-		for (Edge<Integer> e : edgeList) {
+		for (Edge<Integer> e : edgeList) { // Looks for outgoing edges of parameter vertex that are not walking edges
 			if (e.getElement() != 90) {
 				originalEdges[index] = e;
 				index++;
 			}
 		}
 
-		Vertex<Integer> nextStation = parisMetro.opposite(v, originalEdges[0]);
-		visited.add(nextStation);
-		stack.push(nextStation);
+		Vertex<Integer> nextStation = parisMetro.opposite(v, originalEdges[0]); // Sets next station to visit
+		visited.add(nextStation); // Becomes 'visited' vertex
+		stack.push(nextStation); // Pushes on to stack
 
-		while (!stack.isEmpty()) {
+		while (!stack.isEmpty()) { // Traverses line in one direction and adds each vertex visited to visited and onLine, then stops when it reaches an endpoint of the line
 			nextStation = stack.pop();
 			Iterable<Edge<Integer>> outgoingEdges = parisMetro.outgoingEdges(nextStation);
-			for (Edge<Integer> e : outgoingEdges) {
-				if (e.getElement() != 90 && !visited.contains(parisMetro.opposite(nextStation, e))) {
+			for (Edge<Integer> e : outgoingEdges) { // Iterates through nextStation's outgoing edges 
+				if (e.getElement() != 90 && !visited.contains(parisMetro.opposite(nextStation, e))) { // Looks for edges that are not walking and that HashSet visited doesn't contain
 					nextStation = parisMetro.opposite(nextStation, e);
 					visited.add(nextStation);
 					stack.push(nextStation);
@@ -97,16 +98,16 @@ public class ParisMetro {
 			}
 		} 
 
-		if (originalEdges[1] != null) {
+		if (originalEdges[1] != null) { // Checks if parameter vertex is a line endpoint, if not it continues to check the other direction from the initial vertex
 			nextStation = parisMetro.opposite(v, originalEdges[1]);
-			visited.add(nextStation);
-			stack.push(nextStation);
-			while (!stack.isEmpty()) {
+			visited.add(nextStation); // Becomes 'visited' vertex
+			stack.push(nextStation); // Pushes on to stack
+			while (!stack.isEmpty()) { // Traverses line in one direction and adds each vertex visited to visited and onLine, then stops when it reaches an endpoint of the line
 				nextStation = stack.pop();
 				Iterable<Edge<Integer>> outgoingEdges = parisMetro.outgoingEdges(nextStation);
-				for (Edge<Integer> e : outgoingEdges) {
+				for (Edge<Integer> e : outgoingEdges) { // Iterates through nextStation's outgoing edges
 					if (e.getElement() != 90 && !visited.contains(parisMetro.opposite(nextStation, e))) {
-						nextStation = parisMetro.opposite(nextStation, e);
+						nextStation = parisMetro.opposite(nextStation, e); // Looks for edges that are not walking and that HashSet visited doesn't contain
 						visited.add(nextStation);
 						stack.push(nextStation);
 						onLine.enqueue(nextStation);
@@ -115,25 +116,25 @@ public class ParisMetro {
 				}
 			}
 			return onLine;
-		} else {
+		} else { // If parameter vertex is an endpoint, then return LinkedQueue onLine
 			return onLine;
 		}
 
 		
 	}
-
+	// Code taken from GraphAlgoritm class in Net folde from Lab 9
 	public static LinkedStack<Integer> shortestTimeToDestination(Vertex<Integer> src, Vertex<Integer> dest) {
-		Map<Vertex<Integer>, Vertex<Integer>> previousVisit = new ProbeHashMap<>();
-		LinkedStack<Integer> shortestPath = new LinkedStack<Integer>();
+		ProbeHashMap<Vertex<Integer>, Vertex<Integer>> previousVisit = new ProbeHashMap<>(); // Key is the current vertex and value is its previous vertex on the shortest route from source
+		LinkedStack<Integer> shortestPath = new LinkedStack<Integer>(); // will contain the shortest path from src to dest with src being on top and dest being at the bottom
 		// d.get(v) is upper bound on distance from src to v
-		Map<Vertex<Integer>, Integer> d = new ProbeHashMap<>();
+		ProbeHashMap<Vertex<Integer>, Integer> d = new ProbeHashMap<>();
 		// map reachable v to its d value
-		Map<Vertex<Integer>, Integer> cloud = new ProbeHashMap<>();
+		ProbeHashMap<Vertex<Integer>, Integer> cloud = new ProbeHashMap<>();
 		// pq will have vertices as elements, with d.get(v) as key
 		AdaptablePriorityQueue<Integer, Vertex<Integer>> pq;
 		pq = new HeapAdaptablePriorityQueue<>();
 		// maps from vertex to its pq locator
-		Map<Vertex<Integer>, Entry<Integer,Vertex<Integer>>> pqTokens;
+		ProbeHashMap<Vertex<Integer>, Entry<Integer,Vertex<Integer>>> pqTokens;
 		pqTokens = new ProbeHashMap<>();
 
 		// for each vertex v of the graph, add an entry to the priority queue, with
@@ -160,15 +161,15 @@ public class ParisMetro {
 					if (d.get(u) + wgt < d.get(v)) {              // better path to v?
 						previousVisit.put(v, u);
 						d.put(v, d.get(u) + wgt);                   // update the distance
-						if (v == dest) {
-							int time = d.get(u) + wgt;
-							shortestPath.push(v.getElement());
-							while (v != src) {
+						if (v == dest) { // if current vertex is dest halt process to find its shortest path
+							int time = d.get(u) + wgt; // store time for ease of access later
+							shortestPath.push(v.getElement()); // pushes current/dest vertex element into the stack so that it will be popped out last
+							while (v != src) { // Following through a previous vertices until it gets to the src vertex
 								shortestPath.push(previousVisit.get(v).getElement());
 								v = previousVisit.get(v);
-							}
-							shortestPath.push(time);
-							return shortestPath;
+							} // End result is a stack with in order of shortest path from src to dest
+							shortestPath.push(time); // Push time onto the top of stack to easily get from main
+							return shortestPath; // 
 						}
 						pq.replaceKey(pqTokens.get(v), d.get(v));   // update the pq entry
 					}
@@ -177,18 +178,18 @@ public class ParisMetro {
 		}
 
 
-		return shortestPath;         // this only includes reachable vertices
+		return shortestPath;         // Safety return
 	}
 
-	public static void closeLine (Vertex<Integer> v) {
-		LinkedQueue<Vertex<Integer>> line = sameLine(v);
-		while(!line.isEmpty()) {
+	public static void closeLine (Vertex<Integer> v) { // Takes paramter vertex and removes every vertex on the same line
+		LinkedQueue<Vertex<Integer>> line = sameLine(v); // Gets all vertices on the same line as parameter vertex v
+		while(!line.isEmpty()) { // Iterates through LinkedQueue line and removes each vertex from the Graph
 			Vertex<Integer> vertex = line.dequeue();
 			parisMetro.removeVertex(vertex);
 		}
 	}
 
-	public static void printLine(Vertex<Integer> v) {
+	public static void printLine(Vertex<Integer> v) { // Prints the line that parameter vertex is on, in a legible manner
 		LinkedQueue<Vertex<Integer>> queue = sameLine(v);
 		while (!queue.isEmpty()) {
 			System.out.print(queue.dequeue().getElement() + " ");
@@ -196,7 +197,7 @@ public class ParisMetro {
 		System.out.println();
 	}
 
-	public static void printStack(LinkedStack<Integer> stack) {
+	public static void printStack(LinkedStack<Integer> stack) { // Prints a inputted stack of Station Numerbs in a legible order 
 		while (!stack.isEmpty()) {
 			System.out.print(stack.pop() + " ");
 		}
@@ -262,5 +263,5 @@ public class ParisMetro {
 
 			System.out.println("End of Test -------------");
 		}
-
+	}
 }
